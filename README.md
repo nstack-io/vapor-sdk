@@ -23,7 +23,7 @@ Add `NStack` to the Package dependencies:
 ```swift
 dependencies: [
     // ...,
-    .package(url: "https://github.com/nodes-vapor/nstack.git", .from(from: "3.0.0-beta"))
+    .package(url: "https://github.com/nstack-io/vapor-sdk.git", .from(from: "3.0.0"))
 ]
 ```
 
@@ -220,7 +220,6 @@ config.prefer(DatabaseKeyedCache<ConfiguredDatabase<RedisDatabase>>.self, for: K
 ## 🏆 Credits
 
 This package is developed and maintained by the Vapor team at [Nodes](https://www.nodesagency.com).
-The package owner for this project is [Christian](https://github.com/cweinberger).
 
 ## 📄 License
 

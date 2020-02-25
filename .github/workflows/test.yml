@@ -1,0 +1,25 @@
+name: build
+on: [push, pull_request]
+jobs:
+  bionic:
+    container: 
+      image: swift:bionic
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: apt-get -qq update && apt-get -q -y install libpq-dev libssl-dev zlib1g-dev libcurl4-openssl-dev
+    - run: swift test --enable-test-discovery --sanitize=thread
+  bionic-release:
+    container: 
+      image: swift:bionic
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: apt-get -qq update && apt-get -q -y install libpq-dev libssl-dev zlib1g-dev libcurl4-openssl-dev
+    - run: swift build -c release
+  macOS:
+    runs-on: macOS-latest  
+    steps:
+    - uses: actions/checkout@v2
+    - run: brew install libressl
+    - run: swift test
