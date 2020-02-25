@@ -23,7 +23,7 @@ Add `NStack` to the Package dependencies:
 ```swift
 dependencies: [
     // ...,
-    .package(url: "https://github.com/nstack-io/vapor-sdk.git", .from(from: "3.0.0"))
+    .package(url: "https://github.com/nodes-vapor/nstack.git", from: "3.0.0")
 ]
 ```
 
