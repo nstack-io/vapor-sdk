@@ -1,22 +1,18 @@
 extension Localization {
+    struct ResponseData: NStackResponse {
+        typealias DataObject = LocalizationFormat
 
-    struct ResponseData: Codable {
-
-        let translations: LocalizationFormat
-        let meta: Meta
-
-        struct Meta: Codable {
-
+        struct Metadata: Decodable {
             let language: Language
-            let acceptLanguage: String
+            let platform: Platform
 
-            struct Language: Codable {
-
+            struct Language: Decodable {
                 let id: Int
                 let name: String
                 let locale: String
                 let direction: String
                 let isDefault: Bool
+                let isBestFit: Bool
 
                 enum CodingKeys: String, CodingKey {
                     case id
@@ -24,18 +20,17 @@ extension Localization {
                     case locale
                     case direction
                     case isDefault = "is_default"
+                    case isBestFit = "is_best_fit"
                 }
             }
 
-            enum CodingKeys: String, CodingKey {
-                case language
-                case acceptLanguage = "Accept-Language"
+            struct Platform: Decodable {
+                var id: Int
+                var slug: String
             }
         }
 
-        enum CodingKeys: String, CodingKey {
-            case translations = "data"
-            case meta
-        }
+        let data: LocalizationFormat
+        let meta: Metadata
     }
 }

@@ -1,31 +1,17 @@
 import Vapor
 
 final class NStackLogger {
+    let isEnabled: Bool
+    private let logger: Logger
 
-    let enabled: Bool
-
-    init(enabled: Bool) {
-        self.enabled = enabled
+    init(isEnabled: Bool, logger: Logger) {
+        self.isEnabled = isEnabled
+        self.logger = logger
     }
 
-    func log(_ message: String) {
-        if enabled {
-            debugPrint("[NStack] \(message)")
+    func log(message: Logger.Message, withLevel level: Logger.Level) {
+        if isEnabled {
+            logger.log(level: level, message)
         }
-    }
-}
-
-extension NStackLogger: ServiceType {
-
-    public static func makeService(for container: Container) -> Self {
-
-        var enabled: Bool = false
-        do {
-            let config = try container.make(NStack.Config.self)
-            enabled = config.log
-        } catch {
-            debugPrint("[NStack] No `NStack.Config` found. Log will be disabled.")
-        }
-        return self.init(enabled: enabled)
     }
 }

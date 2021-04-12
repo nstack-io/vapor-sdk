@@ -1,7 +1,6 @@
 # NStack 🛠
-[![Swift Version](https://img.shields.io/badge/Swift-4.1-brightgreen.svg)](http://swift.org)
-[![Vapor Version](https://img.shields.io/badge/Vapor-3-30B6FC.svg)](http://vapor.codes)
-[![CircleCI](https://circleci.com/gh/nodes-vapor/nstack/tree/master.svg?style=svg)](https://circleci.com/gh/nodes-vapor/nstack/tree/master)
+[![Swift Version](https://img.shields.io/badge/Swift-5.3-brightgreen.svg)](http://swift.org)
+[![Vapor Version](https://img.shields.io/badge/Vapor-4-30B6FC.svg)](http://vapor.codes)
 [![codebeat badge](https://codebeat.co/badges/f324d1a5-28e1-433e-b71c-a2d2d33bb3ec)](https://codebeat.co/projects/github-com-nodes-vapor-nstack-master)
 [![codecov](https://codecov.io/gh/nodes-vapor/nstack/branch/master/graph/badge.svg)](https://codecov.io/gh/nodes-vapor/nstack)
 [![Readme Score](http://readme-score-api.herokuapp.com/score.svg?url=https://github.com/nodes-vapor/nstack)](http://clayallsopp.github.io/readme-score?url=https://github.com/nodes-vapor/nstack)
@@ -11,8 +10,7 @@ This package is a wrapper around the NStack.io API.
 
 Supports the following NStack modules:
 
-- Translate
-
+- Localization
 
 ## 📦 Installation
 
@@ -23,7 +21,7 @@ Add `NStack` to the Package dependencies:
 ```swift
 dependencies: [
     // ...,
-    .package(url: "https://github.com/nodes-vapor/nstack.git", from: "3.0.0")
+    .package(url: "https://github.com/nodes-vapor/nstack.git", from: "4.0.0")
 ]
 ```
 
