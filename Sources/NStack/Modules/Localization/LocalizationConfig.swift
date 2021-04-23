@@ -4,13 +4,17 @@ public struct LocalizationConfig: Codable {
     public let cacheInMinutes: Int
     public let placeholderPrefix: String
     public let placeholderSuffix: String
+    public let retryWaitingPeriodInMinutes: Double
+    public let notFoundWaitingPeriodInMinutes: Double
 
     public static let `default` = LocalizationConfig(
         defaultPlatform: .backend,
         defaultLanguage: "en-EN",
         cacheInMinutes: 60,
         placeholderPrefix: "{",
-        placeholderSuffix: "}"
+        placeholderSuffix: "}",
+        retryWaitingPeriodInMinutes: 3,
+        notFoundWaitingPeriodInMinutes: 5
     )
 
     public init(
@@ -18,7 +22,9 @@ public struct LocalizationConfig: Codable {
         defaultLanguage: String = LocalizationConfig.default.defaultLanguage,
         cacheInMinutes: Int =  LocalizationConfig.default.cacheInMinutes,
         placeholderPrefix: String = LocalizationConfig.default.placeholderPrefix,
-        placeholderSuffix: String = LocalizationConfig.default.placeholderSuffix
+        placeholderSuffix: String = LocalizationConfig.default.placeholderSuffix,
+        retryWaitingPeriodInMinutes: Double = LocalizationConfig.default.retryWaitingPeriodInMinutes,
+        notFoundWaitingPeriodInMinutes: Double = LocalizationConfig.default.notFoundWaitingPeriodInMinutes
     ) {
         self.defaultPlatform = defaultPlatform
         self.defaultLanguage = defaultLanguage
@@ -32,5 +38,8 @@ public struct LocalizationConfig: Codable {
             self.placeholderPrefix = placeholderPrefix
             self.placeholderSuffix = placeholderSuffix
         }
+
+        self.retryWaitingPeriodInMinutes = retryWaitingPeriodInMinutes
+        self.notFoundWaitingPeriodInMinutes = notFoundWaitingPeriodInMinutes
     }
 }

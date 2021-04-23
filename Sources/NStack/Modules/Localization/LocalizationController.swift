@@ -6,6 +6,8 @@ public final class LocalizationController {
     var localizations: [String: Localization]
     var attempts: [String: TranslationAttempt]
     var cache: Cache
+    let logger: NStackLogger
+    private let eventLoop: EventLoop
 
     public enum Platform: String, Codable {
         case backend, api, web, mobile
@@ -21,6 +23,16 @@ public final class LocalizationController {
         self.localizations = [:]
         self.attempts = [:]
         self.cache = application.nstack.caches.cache
+        self.logger = NStackLogger(
+            isEnabled: application.nstack.config.enableLogging,
+            logger: application.logger
+        )
+        self.eventLoop = application.client.eventLoop
+    }
+
+    struct Paths {
+        static var platformResources = "/api​/v2​/content​/localize​/resources​/platforms​"
+        static var resourceLocalizations = "/api​/v2​/content​/localize​/resources"
     }
 }
 
@@ -28,223 +40,234 @@ public typealias Localize = LocalizationController
 
 public extension LocalizationController {
 
-//    public final func get(
-//        on worker: Container,
-//        platform: Platform? = nil,
-//        language: String? = nil,
-//        section: String,
-//        key: String,
-//        searchReplacePairs: [String: String]? = nil
-//    ) -> Future<String> {
-//
-//        let platform = platform ?? self.config.defaultPlatform
-//        let language = language ?? self.config.defaultLanguage
-//
-//        try? worker.make(NStackLogger.self).log("Requesting translate for platform: \(platform) - language: \(language) - section: \(section) - key: \(key)")
-//
-//        do {
-//
-//            return try fetchLocalization(
-//                on: worker,
-//                platform: platform,
-//                language: language
-//            ).map { localization in
-//
-//                guard let localization = localization else {
-//                    return Localization.fallback(section: section, key: key)
-//                }
-//
-//                var value = localization.get(on: worker, section: section, key: key)
-//
-//                // Search / Replace placeholders
-//                if let searchReplacePairs = searchReplacePairs {
-//                    for(search, replace) in searchReplacePairs {
-//                        value = value.replacingOccurrences(of: self.config.placeholderPrefix + search + self.config.placeholderSuffix, with: replace)
-//                    }
-//                }
-//                return value
-//            }
-//
-//        } catch {
-//
-//            return worker.future(Localization.fallback(section: section, key: key))
-//        }
-//    }
+    final func get(
+        platform: Platform? = nil,
+        language: String? = nil,
+        section: String,
+        key: String,
+        searchReplacePairs: [String: String]? = nil
+    ) -> EventLoopFuture<String> {
+        let platform = platform ?? self.localizationConfig.defaultPlatform
+        let language = language ?? self.localizationConfig.defaultLanguage
 
-//    public final func get(
-//        on worker: Container,
-//        platform: Platform? = nil,
-//        language: String? = nil,
-//        section: String
-//    ) -> Future<[String: String]> {
-//
-//        let platform = platform ?? self.config.defaultPlatform
-//        let language = language ?? self.config.defaultLanguage
-//
-//        try? worker.make(NStackLogger.self).log("Requesting translate for platform: \(platform) - language: \(language) - section: \(section)")
-//
-//        do {
-//            return try fetchLocalization(
-//                on: worker,
-//                platform: platform,
-//                language: language
-//            ).map { localization in
-//
-//                guard let localization = localization else {
-//                    return Localization.fallback(section: section)
-//                }
-//                return localization.get(on: worker, section: section)
-//            }
-//
-//        } catch {
-//            return worker.future(Localization.fallback(section: section))
-//        }
-//    }
+        logger.log(
+            message: "Requesting translate for platform: \(platform) - language: \(language) - section: \(section) - key: \(key)",
+            withLevel: .info
+        )
 
-//    final func preloadLocalization(
-//        on worker: Container,
-//        platform: Platform? = nil,
-//        language: String? = nil
-//    ) throws -> Future<Void> {
-//
-//        let platform = platform ?? self.config.defaultPlatform
-//        let language = language ?? self.config.defaultLanguage
-//
-//        return try fetchLocalization(on: worker, platform: platform, language: language).transform(to: ())
-//    }
+        return fetchLocalization(platform: platform, language: language)
+            .map { [self] localization in
+                guard let localization = localization else {
+                    logger.log(
+                        message: "Failed to get localization for section: \(section) and key: \(key)",
+                        withLevel: .notice
+                    )
+                    return Localization.fallback(section: section, key: key)
+                }
+
+                var value = localization.get(logger: logger, section: section, key: key)
+
+                // Search / Replace placeholders
+                if let searchReplacePairs = searchReplacePairs {
+                    for(search, replace) in searchReplacePairs {
+                        value = value.replacingOccurrences(
+                            of: localizationConfig.placeholderPrefix + search + localizationConfig.placeholderSuffix,
+                            with: replace
+                        )
+                    }
+                }
+                return value
+            }
+            .flatMapError { [self] _ in
+                logger.log(
+                    message: "Failed to get localization for section: \(section) and key: \(key)",
+                    withLevel: .notice
+                )
+                return eventLoop.future(Localization.fallback(section: section, key: key))
+            }
+    }
+
+    final func get(
+        platform: Platform? = nil,
+        language: String? = nil,
+        section: String
+    ) -> EventLoopFuture<[String: String]> {
+        let platform = platform ?? self.localizationConfig.defaultPlatform
+        let language = language ?? self.localizationConfig.defaultLanguage
+
+        logger.log(
+            message: "Requesting translate for platform: \(platform) - language: \(language) - section: \(section)",
+            withLevel: .info
+        )
+
+        return fetchLocalization(platform: platform, language: language)
+            .map { [self] localization in
+                guard let localization = localization else {
+                    return Localization.fallback(section: section)
+                }
+                return localization.get(logger: logger, section: section)
+            }
+            .flatMapError { [self] _ in
+                logger.log(
+                    message: "Failed to get localization for section: \(section)",
+                    withLevel: .notice
+                )
+                return eventLoop.future(Localization.fallback(section: section))
+            }
+    }
+
+    final func preloadLocalization(
+        platform: Platform? = nil,
+        language: String? = nil
+    ) -> EventLoopFuture<Void> {
+        let platform = platform ?? localizationConfig.defaultPlatform
+        let language = language ?? localizationConfig.defaultLanguage
+
+        return fetchLocalization(platform: platform, language: language).transform(to: ())
+    }
     
-//    private final func fetchLocalization(
-//        on worker: Container,
-//        platform: Platform,
-//        language: String
-//    ) throws -> Future<Localization?> {
-//
-//        let cacheKey = TranslateController.cacheKey(platform: platform, language: language)
-//
-//        // Look up attempt
-//        if let attempt: TranslationAttempt = attempts[cacheKey], attempt.avoidFetchingAgain() {
-//
-//            try? worker.make(NStackLogger.self).log("Failed lately, no reason to try again")
-//
-//            // Try vapor cache
-//            return freshFromCache(
-//                on: worker,
-//                platform: platform,
-//                language: language
-//            ).map { localization in
-//
-//                if let _ = localization {
-//                    try? worker.make(NStackLogger.self).log("Vapor cache used as fallback")
-//                } else {
-//                    try? worker.make(NStackLogger.self).log("Failed lately and no cache")
-//                }
-//                return localization
-//            }
-//        }
-//
-//        // Try memory cache
-//        if let memoryLocalization = freshFromMemory(
-//            on: worker,
-//            platform: platform,
-//            language: language
-//        ) {
-//            try? worker.make(NStackLogger.self).log("Memory cache used")
-//            return worker.future(memoryLocalization)
-//        }
-//
-//        // Try vapor cache
-//        return freshFromCache(
-//            on: worker,
-//            platform: platform,
-//            language: language
-//        ).flatMap { cachedLocalization in
-//
-//            if let cachedLocalization = cachedLocalization {
-//                try? worker.make(NStackLogger.self).log("Vapor cache used as fallback")
-//                return worker.future(cachedLocalization)
-//            }
-//
-//            // Fetch from API
-//            do {
-//                return try self.application.connectionManager.getTranslation(
-//
-//                    application: self.application,
-//                    platform: platform,
-//                    language: language
-//                ).flatMap { localization in
-//                    return self.setCache(on: worker, localization: localization)
-//                        .transform(to: localization)
-//                }
-//            } catch {
-//                self.attempts[TranslateController.cacheKey(platform: platform, language: language)] = try TranslationAttempt(error: error)
-//                throw error
-//            }
-//        }
-//    }
+    private final func fetchLocalization(
+        platform: Platform,
+        language: String
+    ) -> EventLoopFuture<Localization?> {
+        let cacheKey = LocalizationController.makeCacheKey(platform: platform, language: language)
 
-//    private final func freshFromMemory(
-//        on worker: Container,
-//        platform: Platform,
-//        language: String
-//    ) -> Localization? {
-//
-//        let cacheKey = "\(TranslateController.cacheKey(platform: platform, language: language))"
-//
-//        // Look up in memory
-//        guard let localization: Localization = localizations[cacheKey] else {
-//            return nil
-//        }
-//
-//        // If outdated remove
-//        if localization.isOutdated(on: worker, self.config.cacheInMinutes) {
-//            localizations.removeValue(forKey: cacheKey)
-//            return nil
-//        }
-//
-//        return localization
-//    }
+        // Check for recent look up attempts
+        if let attempt: TranslationAttempt = attempts[cacheKey],
+            attempt.avoidFetchingAgain(
+                retryWaitingPeriodInMinutes: localizationConfig.retryWaitingPeriodInMinutes,
+                notFoundWaitingPeriodInMinutes: localizationConfig.notFoundWaitingPeriodInMinutes
+        ) {
+            logger.log(message: "Failed lately, no reason to try again", withLevel: .info)
 
-//    private final func freshFromCache(
-//        on worker: Container,
-//        platform: Platform,
-//        language: String
-//    ) -> Future<Localization?> {
-//
-//        let cacheKey = TranslateController.cacheKey(platform: platform, language: language)
-//
-//        return cache.get(cacheKey, as: Localization.self).map { localization in
-//
-//            if let localization = localization, localization.isOutdated(
-//                on: worker,
-//                self.config.cacheInMinutes
-//            ) {
-//                try? worker.make(NStackLogger.self).log("Droplet cache is outdated removing it")
-//                _ = self.cache.remove(cacheKey)
-//                return nil
-//            }
-//            return localization
-//        }
-//    }
+            // Try vapor cache
+            return getLocalizationsFromCache(platform: platform,language: language)
+                .map { [self] localization in
+                    if localization == nil {
+                        logger.log(message: "Failed lately and no cache", withLevel: .info)
+                    } else {
+                        logger.log(message: "Vapor cache used as fallback", withLevel: .info)
+                    }
+                    return localization
+                }
+        }
 
-//    private final func setCache(
-//        on worker: Container,
-//        localization: Localization
-//    ) -> Future<Void> {
-//
-//        let cacheKey = TranslateController.cacheKey(
-//            platform: localization.platform,
-//            language: localization.language
-//        )
-//        try? worker.make(NStackLogger.self).log("Caching translate on key: \(cacheKey)")
-//
-//        // Put in memory cache
-//        localizations[cacheKey] = localization
-//
-//        // Put in vapor KeyedCache
-//        return cache.set(cacheKey, to: localization).map{}
-//    }
+        // Try using memory cache
+        if let memoryLocalization = getLocalizationsFromMemory(platform: platform, language: language) {
+            logger.log(message: "Using localizations from memory cache as fallback", withLevel: .info)
+            return eventLoop.future(memoryLocalization)
+        }
 
-    private static func cacheKey(platform: Platform, language: String) -> String {
+        // Try using vapor cache
+        return getLocalizationsFromCache(platform: platform, language: language)
+            .flatMap { [self] cachedLocalization in
+                if let cachedLocalization = cachedLocalization {
+                    logger.log(message: "Using Vapor cache used as fallback", withLevel: .info)
+                    return eventLoop.future(cachedLocalization)
+                }
+
+                // Fetch localizations from NStack
+                logger.log(message: "Fetching new localizations from NStack", withLevel: .info)
+                return getLocalizationsFromNStack(platform: platform, language: language)
+            }
+    }
+
+    private final func getLocalizationsFromMemory(
+        platform: Platform,
+        language: String
+    ) -> Localization? {
+        let cacheKey = LocalizationController.makeCacheKey(platform: platform, language: language)
+
+        // Look up in memory
+        let localization: Localization? = localizations[cacheKey]
+
+        // If outdated remove
+        if localization?.isOutdated(logger: logger, localizationConfig.cacheInMinutes) == true {
+            logger.log(message: "InMemory localization is outdated. Removing it!", withLevel: .info)
+            localizations.removeValue(forKey: cacheKey)
+            return nil
+        }
+
+        return localization
+    }
+
+    private final func getLocalizationsFromCache(
+        platform: Platform,
+        language: String
+    ) -> EventLoopFuture<Localization?> {
+        let cacheKey = LocalizationController.makeCacheKey(platform: platform, language: language)
+        return cache.get(cacheKey, as: Localization.self).map { [self] localization in
+            if localization?.isOutdated(logger: logger, localizationConfig.cacheInMinutes) == true {
+                logger.log(message: "Localization cache is outdated", withLevel: .info)
+                // TODO: how to drop a cache in Vapor 4?
+                return nil
+            }
+            return localization
+        }
+    }
+
+    private final func getLocalizationsFromNStack(
+        platform: Platform,
+        language: String
+    ) -> EventLoopFuture<Localization?> {
+        let resourcePath = "\(Paths.resourceLocalizations)/\(platform.rawValue)"
+        return client.getContent(
+            forPath: resourcePath,
+            withErrorMessage: "[NStack] Could not find any localization resources for platform \(platform)"
+        )
+        .flatMapThrowing { [self] (resources: LocalizationResource) in
+            guard let resource = resources.data.first(where: { $0.language.locale == language }) else {
+                logger.log(
+                    message: "[NStack] Could not find any localization resource for platform: \(platform) and language \(language)",
+                    withLevel: .notice
+                )
+                throw NStackError.localizationLanguageNotSupported(language: language, platform: platform.rawValue)
+            }
+            return resource
+        }
+        .flatMap { [self] (resource: LocalizationResource.Resource) in
+            let path = "​\(Paths.resourceLocalizations)/\(resource.id)"
+            return client.getContent(
+                forPath: path,
+                withErrorMessage: "[NStack] Could not find any localizations for platform: \(platform) and language: \(language)"
+            )
+        }
+        .flatMap { [self] (localizationResponse: Localization.ResponseData) in
+            // Cache localizations in memory and in Vapor cache
+            let localizations = Localization(responseData: localizationResponse)
+            return setCache(localization: localizations)
+                .transform(to: localizations)
+        }
+        .flatMapErrorThrowing { [self] error in
+            var nstackError: NStackError {
+                if let nstackError = error as? NStackError {
+                    return nstackError
+                }
+                return NStackError.unexpectedLocalizationError(message: error.localizedDescription)
+            }
+            let cacheKey = Localize.makeCacheKey(platform: platform, language: language)
+            attempts[cacheKey] = TranslationAttempt(error: nstackError)
+            throw nstackError
+        }
+    }
+
+    private final func setCache(
+        localization: Localization
+    ) -> EventLoopFuture<Void> {
+        let cacheKey = LocalizationController.makeCacheKey(
+            platform: localization.platform,
+            language: localization.language
+        )
+        logger.log(message: "Caching localizations on key: \(cacheKey)", withLevel: .info)
+
+        // Put in memory cache
+        localizations[cacheKey] = localization
+
+        // Put in vapor KeyedCache
+        return cache.set(cacheKey, to: localization)
+    }
+
+    private static func makeCacheKey(platform: Platform, language: String) -> String {
         return platform.rawValue.lowercased() + "_" + language.lowercased()
     }
 }

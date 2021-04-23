@@ -2,7 +2,7 @@ import Vapor
 
 protocol NStackClientProtocol {
     init(application: Application)
-    func getContent<C: NStackResponse>(forPath: String) -> EventLoopFuture<C>
+    func getContent<C: NStackResponse>(forPath: String, withErrorMessage: String) -> EventLoopFuture<C>
 }
 
 final class NStackClient: NStackClientProtocol {
@@ -19,22 +19,28 @@ final class NStackClient: NStackClientProtocol {
     /// Get NStack content for the provided path.
     /// - Parameter path: path to the desired content
     /// - Returns: An Event Loop Future holding the decoded response
-    func getContent<C>(forPath path: String) -> EventLoopFuture<C> where C : NStackResponse {
+    func getContent<C>(
+        forPath path: String,
+        withErrorMessage errorMessage: String
+    ) -> EventLoopFuture<C> where C : NStackResponse {
         let url = URI(path: "\(config.baseURL)/\(path)")
 
         return client.get(url, headers: authHeaders())
             .flatMapThrowing { [self] response in
-                try assertOKResponse(response, errorMessage: "")
+                try assertOKResponse(response, errorMessage: errorMessage)
 
                 let body = try getResponseBody(from: response, forPath: path)
 
-                return try decoder.decode(C.self, from: body)
+                do {
+                    return try decoder.decode(C.self, from: body)
+                } catch {
+                    throw NStackError.decodingResponseBodyFailed(path: path, type: C.self)
+                }
             }
     }
 
     private func assertOKResponse(_ response: ClientResponse, errorMessage: String) throws {
         guard response.status == .ok else {
-
             throw NStackError.failedToFetchContent(
                 withMessage: "\(errorMessage): \(response)",
                 andStatus: response.status
@@ -57,32 +63,3 @@ final class NStackClient: NStackClientProtocol {
         ]
     }
 }
-
-//{
-//    "data": {
-//        "default": {
-//            "title": "NStack SDK Demo",
-//            "test": "test"
-//        },
-//        "test": {
-//            "testDollarSign": "__testDollarSign",
-//            "testSingleQuotationMark": "__testSingleQuotationMark",
-//            "testDoubleQuotationMark": "__testDoubleQuotationMark",
-//            "testMultipleLines": "__testMultipleLines"
-//        }
-//    },
-//    "meta": {
-//        "language": {
-//            "id": 7,
-//            "name": "German (Austria)",
-//            "locale": "de-AT",
-//            "direction": "LRM",
-//            "is_default": false,
-//            "is_best_fit": false
-//        },
-//        "platform": {
-//            "id": 515,
-//            "slug": "mobile"
-//        }
-//    }
-//}

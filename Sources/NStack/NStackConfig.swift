@@ -10,7 +10,7 @@ public struct NStackConfig {
         applicationID: String,
         restKey: String,
         enableLogging: Bool = false,
-        baseURL: String = "https://nstack.io/api/v2/"
+        baseURL: String = "https://nstack.io"
     ) {
         self.applicationName = applicationName
         self.applicationID = applicationID

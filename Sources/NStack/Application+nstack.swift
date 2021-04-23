@@ -35,7 +35,7 @@ public extension Application {
         public var config: NStackConfig {
             get {
                 guard let config = storage.config else {
-                    fatalError("NStack not configured, use: app.nstack.config = ...")
+                    fatalError("NStack isn't configured, use: app.nstack.config = ...")
                 }
 
                 return config
@@ -46,7 +46,7 @@ public extension Application {
         public var localize: LocalizationController {
             get {
                 guard let localize = storage.localize else {
-                    fatalError("NStack localize not configured, use: app.nstack.localize = ...")
+                    fatalError("NStack localize isn't configured, use: app.nstack.localize = ...")
                 }
 
                 return localize
@@ -95,7 +95,7 @@ extension Application.NStack {
 
         public var cache: Cache {
             guard let factory = nstack.storage.makeCache else {
-                fatalError("NStack cache not configured, use: app.nstack.caches.use(...)")
+                fatalError("NStack cache isn't configured, use: app.nstack.caches.use(...)")
             }
 
             return factory(nstack.application)

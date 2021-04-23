@@ -11,13 +11,11 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.43.0"),
-        .package(url: "https://github.com/vapor/leaf.git", from: "4.1.0")
     ],
     targets: [
         .target(
             name: "NStack",
             dependencies: [
-                .product(name: "Leaf", package: "leaf"),
                 .product(name: "Vapor", package: "vapor"),
             ]
         ),
