@@ -36,184 +36,117 @@ targets: [
 
 ## Getting started 🚀
 
-Import NStack where needed:
+### Configuration
+
+In configure.swift:
 ```swift
 import NStack
-```
 
-### Config
+// [...]
 
-Create `NStack.Config` to configure `NStack`, your `Applications` as well as the default `Translate.Config`.
-
-```swift
-let nstackConfig = NStack.Config(
-    applicationConfigs: [
-        Application.Config(
-            name: "my app name",
-            applicationId: "NEVER_PUT_API_IDS_IN_SOURCE_CODE",
-            restKey: "NEVER_PUT_API_KEYS_IN_SOURCE_CODE"
-        )
-    ],
-    defaultTranslateConfig: TranslateController.Config(
-        defaultPlatform: .backend,
-        defaultLanguage: "en-EN",
-        cacheInMinutes: 1
-    ),
-    log: false
+app.cache.use(.memory)
+app.nstack.config = NStackConfig(
+    applicationName: "my-application",
+    applicationID: "my-application-id",
+    restKey: "my-secret-key",
+    enableLogging: false
 )
 ```
 
-If you set `log` to `true` you will receive helpful logs in case anything goes wrong.
+### Cache 🗄
 
+NStack uses the same cache as configured by `app.caches.use()` from Vapor. 
+Hence, it is important to set up Vapor's cache if you're using this default behaviour. 
+You can use an in-memory cache for Vapor like so:
 
-### Adding the Service
-
-Instantiate and register `NStackProvider` with config created in the previous step.
-If you plan on using the leaf tag (see below), make sure to use a synchronous cache, such as `MemoryKeyedCache` (and not `RedisCache`); otherwise it might break your leaf templates, see https://github.com/vapor/leaf/issues/134
-
-In `configure.swift`:
+configure.swift:
 ```swift
-// MARK: NStack
-try services.register(
-    NStackProvider(
-        config: nstackConfig,
-        cacheFactory: { container in try container.make(MemoryKeyedCache.self) }
-    )
-)
+app.cache.use(.memory)
 ```
+#### Custom cache
+You can override which cache to use by creating your own type that conforms to the `Cache` protocol from Vapor. 
+Use `app.nstack.caches.use()` to configure which cache to use.
 
 ## Usage
 
 ### Features
 
-#### Translate
-
+#### Localization
+First you'll have to configure your localization. In configure.swift just below where you configured nstack
 ```swift
-func getProductName(req: Request) throws -> Future<String> {
+// ...
+let localizationConfig = LocalizationConfig(
+    defaultPlatform: .backend,
+    defaultLanguage: "en-EN",
+    cacheInMinutes: 60,
+    placeholderPrefix: "{",
+    placeholderSuffix: "}",
+    retryWaitingPeriodInMinutes: 3,
+    notFoundWaitingPeriodInMinutes: 5
+)
+
+app.nstack.localize = LocalizationController(
+    client: NStackClient(application: app),
+    config: localizationConfig,
+    application: app
+)
+```
+
+Next, to get your localizations. You can either get all localizations for a section or a single localization for a key. 
+
+Get all localizations for a section. If you omit `platform` and `language` it will automatically get your default values as defined in your localization config.
+```swift
+func getProductSection(req: Request) -> EventLoopFuture<[String: String]> {
 
     // ...
 
-    let nstack = try req.make(NStack.self)
-    let translation = nstack.application.translate.get(on: req, section: "products", key: "nstackForSale")
+    let localizations = request.nstack.localize.get(platform: .backend, language: "en-EN", section: "products")
 
-    return translation
+    return localizations
+}
+```
+
+Get localization for a section/key combination (Using the default platform and section). 
+```swift
+func getProductSection(req: Request) -> EventLoopFuture<String> {
+
+    // ...
+
+    let localization = request.nstack.localize.get(section: "products", key: "product_name")
+
+    return localization
 }
 ```
 
 You can also provide `searchReplacePairs`:
-
 ```swift
-func getProductName(req: Request, owner: String) throws -> Future<String> {
+func getProductName(req: Request, owner: String) throws -> EventLoopFuture<String> {
 
     let nstack = try req.make(NStack.self)
-    let translation = nstack.application.translate.get(
-        on: req,
-        section: "products",
-        key: "nstackForSale",
-        searchReplacePairs: [
-            "productOwner" : owner
-        ]
+    let localization = request.nstack.localize.get(
+        section: "products", 
+        key: "product_name",
+        searchReplacePairs: ["productOwner" : owner]
     )
 
-    return translation
+    return localization
 }
 ```
 
-If you are using multiple NStack applications within your project you can switch them with `getApplication()`:
-
+##### Preload Localizations
+The package comes with a middleware that allows you to preload localizations if needed.  
+It can be registered either globally in your configure.swift:
 ```swift
-let nstack = try req.make(NStack.self)
-let translation = nstack.getApplication("my app name").translate.get(on: req, section: "products", key: "nstackForSale")
+app.middleware.use(NStackPreloadLocalizationsMiddleware())
 ```
-
-Note: you can specify the `get()` call further in case you don't want to go with the values provided in `defaultTranslateConfig`:
-
+Or on individual routes inside your `routes(app:)`
 ```swift
-let translation = nstack.application.translate.get(
-    on: req,
-    platform: .backend,
-    language: "dk-DK",
-    section: "products",
-    key: "nstackForSale",
-    searchReplacePairs: [
-        "productOwner" : "Christian"
-    ]
-)
-```
-
-##### Leaf Tag
-In order to render the NStack Leaf tags, you will need to add them first:
-```swift
-public func configure(_ config: inout Config, _ env: inout Environment, _ services: inout Services) throws {
-    services.register { container -> LeafTagConfig in
-        var tags = LeafTagConfig.default()
-        try tags.useNStackLeafTags(container)
-        return tags
-    }
+let preloadedLocalizations = app.grouped(NStackPreloadLocalizationsMiddleware())
+preloadedLocalizations.get("products") { req in
+    // This request has passed through NStackPreloadLocalizationsMiddleware.
 }
 ```
-
-NStack comes with a built-in Leaf tag. The tag yields a translated string or the given key if translation fails
-```swift
-// Get translation for camelCasedSection.camelCasedKey
-#nstack:translate("camelCasedSection", "camelCasedKey")
-
-// Get translation for camelCasedSection.camelCasedKey and replace searchString1 with replaceString1 etc
-#nstack:translate("camelCasedSection", "camelCasedKey", "searchString1", "replaceString1", "searchString2", "replaceString2", ...)
-```
-
-*IMPORTANT:* Due to a bug in leaf you have to make sure that the translations are already loaded and available synchronously when rendering the view. This can be achieved by using the `NStackPreloadMiddleware` on the routes for your views:
-
-
-```swift
-let nstackPreloadMiddleware = try container.make(NStackPreloadMiddleware.self)
-let unprotectedBackend = router.grouped(nstackPreloadMiddleware)
-```
-
-Please note that the leaf tag always uses the **current application** with the **default translate config** that you have provided.
-
-#### Version Updates 
-NStack has the ability to retrieve the latest version for a certain platform. You can achieve that with the `getLatestVersion(for platform: Platforms) -> Future<UpdateVersion?>` method, e.g.:
-```swift
-let nstack = try NStack.makeService(for: req)
-nstack.application.version.getLatestVersion(for: .android)
-```
-
-#### Responses
-NStack can be used to store JSON responses. To make use of this feature you can use the `ResponseController`.
-
-```swift
-let nstack = try NStack.makeService(for: req)
-nstack.application.response[42].do { (response: Response) in
-	print(response.content)
-}
-```
-
-This gets the unmodified NStack `Response` with your JSON data in an object keyed by `data`, eg.:
-
-```
-{"data":{"myJSONData":"Starts here"}}
-```
-
-Alternatively you can decode your JSON object like so:
-
-```swift
-nstack.application.response[42].do { (response: [String: String]) in
-	print(response)
-}
-```
-
-This would yield your `Decodable` object, in this case our dictionary: `["myJSONData": "Starts here"]`.
-
-### Caching
-
-NStack uses the `KeyedCache` registered with Vapor. If you don't register any Cache, this should be the `KeyedMemory` Cache. If you configure Vapor to prefer another Cache, NStack will use this one instead. Example for Redis:
-
-In `configure.swift`:
-```swift
-config.prefer(DatabaseKeyedCache<ConfiguredDatabase<RedisDatabase>>.self, for: KeyedCache.self)
-```
-
+NOTE:  `NStackPreloadLocalizationsMiddleware` will only fetch the default language and the default platform localizations.
 
 ## 🏆 Credits
 
