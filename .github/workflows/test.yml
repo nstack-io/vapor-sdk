@@ -1,25 +1,26 @@
-name: build
-on: [push, pull_request]
+name: test
+on:
+  pull_request:
+  push:
+    branches:
+    - master
 jobs:
-  bionic:
-    container: 
-      image: swift:bionic
+  linux:
     runs-on: ubuntu-latest
+    container: swift:5.3-focal
     steps:
-    - uses: actions/checkout@v2
-    - run: apt-get -qq update && apt-get -q -y install libpq-dev libssl-dev zlib1g-dev libcurl4-openssl-dev
-    - run: swift test --enable-test-discovery --sanitize=thread
-  bionic-release:
-    container: 
-      image: swift:bionic
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - run: apt-get -qq update && apt-get -q -y install libpq-dev libssl-dev zlib1g-dev libcurl4-openssl-dev
-    - run: swift build -c release
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run tests with Thread Sanitizer
+        run: swift test --enable-test-discovery --sanitize=thread
   macOS:
-    runs-on: macOS-latest  
+    runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
-    - run: brew install libressl
-    - run: swift test
+      - name: Select latest available Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run tests with Thread Sanitizer
+        run: swift test --enable-test-discovery --sanitize=thread
