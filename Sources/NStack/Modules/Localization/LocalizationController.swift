@@ -210,7 +210,7 @@ public extension LocalizationController {
         platform: Platform,
         language: String
     ) -> EventLoopFuture<Localization?> {
-        let resourcePath = "\(Paths.resourceLocalizations)/\(platform.rawValue)"
+        let resourcePath = "\(Paths.platformResources)/\(platform.rawValue)"
         return client.getContent(
             forPath: resourcePath,
             withErrorMessage: "[NStack] Could not find any localization resources for platform \(platform)"

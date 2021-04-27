@@ -22,6 +22,7 @@ let package = Package(
         .testTarget(
             name: "NStackTests",
             dependencies: [
+                "NStack",
                 .product(name: "XCTVapor", package: "vapor")
             ]
         ),
