@@ -9,6 +9,7 @@ struct NStackClient {
         self.client = application.client
         self.config = application.nstack.config
         self.decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
     }
 
     /// Get NStack content for the provided path.
@@ -53,7 +54,7 @@ struct NStackClient {
     private func authHeaders() -> HTTPHeaders {
         [
             "Accept": "application/json",
-            "X-Application-ID": config.applicationID,
+            "X-application-ID": config.applicationID,
             "X-Rest-Api-Key": config.restKey,
         ]
     }
