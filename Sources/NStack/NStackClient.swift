@@ -1,11 +1,6 @@
 import Vapor
 
-protocol NStackClientProtocol {
-    init(application: Application)
-    func getContent<C: NStackResponse>(forPath: String, withErrorMessage: String) -> EventLoopFuture<C>
-}
-
-final class NStackClient: NStackClientProtocol {
+struct NStackClient {
     let client: Client
     let config: NStackConfig
     let decoder: JSONDecoder
@@ -23,7 +18,7 @@ final class NStackClient: NStackClientProtocol {
         forPath path: String,
         withErrorMessage errorMessage: String
     ) -> EventLoopFuture<C> where C : NStackResponse {
-        let url = URI(path: "\(config.baseURL)/\(path)")
+        let url = URI(scheme: config.scheme, host: config.baseURL, path: path)
 
         return client.get(url, headers: authHeaders())
             .flatMapThrowing { [self] response in

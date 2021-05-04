@@ -6,6 +6,12 @@ class NStackTests: XCTestCase {
 
     override func setUp() {
         app = Application(.testing)
+        app.clients.use {
+            NStackTestClient(
+                eventLoop: $0.eventLoopGroup.next(),
+                responses: [:]
+            )
+        }
         app.nstack.config = .init(
             applicationName: "nstack-test-application",
             applicationID: "123456789abc",
@@ -13,10 +19,11 @@ class NStackTests: XCTestCase {
         )
         let nstackConfig = LocalizationConfig()
         app.nstack.localize = .init(
-            client: NStackTestClient(application: app),
             config: nstackConfig,
             application: app
         )
+
+        
     }
 
     override func tearDown() {

@@ -44,7 +44,7 @@ import NStack
 
 // [...]
 
-app.cache.use(.memory)
+app.caches.use(.memory)
 app.nstack.config = NStackConfig(
     applicationName: "my-application",
     applicationID: "my-application-id",

@@ -1,7 +1,7 @@
 import Vapor
 
-public final class LocalizationController {
-    let client: NStackClientProtocol
+public final class LocalizationClient {
+    let client: NStackClient
     let localizationConfig: LocalizationConfig
     var localizations: [String: Localization]
     var attempts: [String: TranslationAttempt]
@@ -13,12 +13,11 @@ public final class LocalizationController {
         case backend, api, web, mobile
     }
 
-    init(
-        client: NStackClientProtocol,
+    public init(
         config: LocalizationConfig,
         application: Application
     ) {
-        self.client = client
+        self.client = NStackClient(application: application)
         self.localizationConfig = config
         self.localizations = [:]
         self.attempts = [:]
@@ -31,14 +30,14 @@ public final class LocalizationController {
     }
 
     struct Paths {
-        static var platformResources = "/api​/v2​/content​/localize​/resources​/platforms​"
-        static var resourceLocalizations = "/api​/v2​/content​/localize​/resources"
+        static var platformResources = "/api/v2/content/localize/resources/platforms"
+        static var resourceLocalizations = "/api/v2/content/localize/resources"
     }
 }
 
-public typealias Localize = LocalizationController
+public typealias Localize = LocalizationClient
 
-public extension LocalizationController {
+public extension LocalizationClient {
 
     final func get(
         platform: Platform? = nil,
@@ -130,7 +129,7 @@ public extension LocalizationController {
         platform: Platform,
         language: String
     ) -> EventLoopFuture<Localization?> {
-        let cacheKey = LocalizationController.makeCacheKey(platform: platform, language: language)
+        let cacheKey = LocalizationClient.makeCacheKey(platform: platform, language: language)
 
         // Check for recent look up attempts
         if let attempt: TranslationAttempt = attempts[cacheKey],
@@ -176,7 +175,7 @@ public extension LocalizationController {
         platform: Platform,
         language: String
     ) -> Localization? {
-        let cacheKey = LocalizationController.makeCacheKey(platform: platform, language: language)
+        let cacheKey = LocalizationClient.makeCacheKey(platform: platform, language: language)
 
         // Look up in memory
         let localization: Localization? = localizations[cacheKey]
@@ -195,7 +194,7 @@ public extension LocalizationController {
         platform: Platform,
         language: String
     ) -> EventLoopFuture<Localization?> {
-        let cacheKey = LocalizationController.makeCacheKey(platform: platform, language: language)
+        let cacheKey = LocalizationClient.makeCacheKey(platform: platform, language: language)
         return cache.get(cacheKey, as: Localization.self).map { [self] localization in
             if localization?.isOutdated(logger: logger, localizationConfig.cacheInMinutes) == true {
                 logger.log(message: "Localization cache is outdated", withLevel: .info)
@@ -223,10 +222,11 @@ public extension LocalizationController {
                 )
                 throw NStackError.localizationLanguageNotSupported(language: language, platform: platform.rawValue)
             }
+
             return resource
         }
         .flatMap { [self] (resource: LocalizationResource.Resource) in
-            let path = "​\(Paths.resourceLocalizations)/\(resource.id)"
+            let path = "\(Paths.resourceLocalizations)/\(resource.id)"
             return client.getContent(
                 forPath: path,
                 withErrorMessage: "[NStack] Could not find any localizations for platform: \(platform) and language: \(language)"
@@ -254,7 +254,7 @@ public extension LocalizationController {
     private final func setCache(
         localization: Localization
     ) -> EventLoopFuture<Void> {
-        let cacheKey = LocalizationController.makeCacheKey(
+        let cacheKey = LocalizationClient.makeCacheKey(
             platform: localization.platform,
             language: localization.language
         )

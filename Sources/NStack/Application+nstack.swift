@@ -11,7 +11,7 @@ public extension Application {
         private final class Storage {
             var makeCache: ((Application) -> Cache)? = nil
             var config: NStackConfig? = nil
-            var localize: LocalizationController? = nil
+            var localize: LocalizationClient? = nil
             init() {}
         }
 
@@ -43,7 +43,7 @@ public extension Application {
             nonmutating set { storage.config = newValue }
         }
 
-        public var localize: LocalizationController {
+        public var localize: LocalizationClient {
             get {
                 guard let localize = storage.localize else {
                     fatalError("NStack localize isn't configured, use: app.nstack.localize = ...")
