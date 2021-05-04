@@ -9,7 +9,6 @@ struct NStackClient {
         self.client = application.client
         self.config = application.nstack.config
         self.decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
     }
 
     /// Get NStack content for the provided path.
