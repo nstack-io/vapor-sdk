@@ -16,7 +16,7 @@ struct LocalizationResource: NStackResponse {
             let locale: String
             let direction: String
             let isDefault: Bool
-            let idBestFit: Bool
+            let isBestFit: Bool
 
             enum CodingKeys: String, CodingKey {
                 case id
