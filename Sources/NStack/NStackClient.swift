@@ -53,7 +53,7 @@ struct NStackClient {
     private func authHeaders() -> HTTPHeaders {
         [
             "Accept": "application/json",
-            "X-Application-Id": config.applicationID,
+            "X-Application-ID": config.applicationID,
             "X-Rest-Api-Key": config.restKey,
         ]
     }
