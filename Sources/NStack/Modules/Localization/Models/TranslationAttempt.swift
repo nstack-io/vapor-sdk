@@ -5,21 +5,21 @@ final class TranslationAttempt {
 
     private var dates: [Date: NStackError] = [:]
 
-    init(error: NStackError) {
-        append(error: error)
+    init(error: NStackError, date: Date = Date()) {
+        append(date: date, error: error)
     }
 
-    func append(error: NStackError) {
-        dates[Date()] = error
+    func append(date: Date, error: NStackError) {
+        dates[date] = error
     }
 
     func avoidFetchingAgain(
-        retryWaitingPeriodInMinutes: Double,
-        notFoundWaitingPeriodInMinutes: Double
+        retryWaitingPeriodInSeconds: Double,
+        notFoundWaitingPeriodInSeconds: Double
     ) -> Bool {
         let now = Date()
-        let datePreRetryPeriod = now.addingTimeInterval(-retryWaitingPeriodInMinutes * 60)
-        let datePreNotFoundPeriod = now.addingTimeInterval(-notFoundWaitingPeriodInMinutes * 60)
+        let datePreRetryPeriod = now.addingTimeInterval(-retryWaitingPeriodInSeconds)
+        let datePreNotFoundPeriod = now.addingTimeInterval(-notFoundWaitingPeriodInSeconds)
 
         for (date, error) in dates {
 

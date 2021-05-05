@@ -14,19 +14,22 @@ public final class LocalizationClient {
     }
 
     public init(
-        config: LocalizationConfig,
-        application: Application
+        localizationConfig: LocalizationConfig,
+        nstackConfig: NStackConfig,
+        client: Client,
+        logger: Logger,
+        cache: Cache
     ) {
-        self.client = NStackClient(application: application)
-        self.localizationConfig = config
+        self.client = .init(client: client, config: nstackConfig)
+        self.localizationConfig = localizationConfig
         self.localizations = [:]
         self.attempts = [:]
-        self.cache = application.nstack.caches.cache
+        self.cache = cache
         self.logger = NStackLogger(
-            isEnabled: application.nstack.config.enableLogging,
-            logger: application.logger
+            isEnabled: nstackConfig.enableLogging,
+            logger: logger
         )
-        self.eventLoop = application.client.eventLoop
+        self.eventLoop = client.eventLoop
     }
 
     struct Paths {
@@ -134,10 +137,15 @@ public extension LocalizationClient {
         // Check for recent look up attempts
         if let attempt: TranslationAttempt = attempts[cacheKey],
             attempt.avoidFetchingAgain(
-                retryWaitingPeriodInMinutes: localizationConfig.retryWaitingPeriodInMinutes,
-                notFoundWaitingPeriodInMinutes: localizationConfig.notFoundWaitingPeriodInMinutes
+                retryWaitingPeriodInSeconds: localizationConfig.retryWaitingPeriodInSeconds,
+                notFoundWaitingPeriodInSeconds: localizationConfig.notFoundWaitingPeriodInSeconds
         ) {
             logger.log(message: "Failed lately, no reason to try again", withLevel: .info)
+
+            if let memoryLocalization = getLocalizationsFromMemory(platform: platform, language: language) {
+                logger.log(message: "Using localizations from memory cache as fallback", withLevel: .info)
+                return eventLoop.future(memoryLocalization)
+            }
 
             // Try vapor cache
             return getLocalizationsFromCache(platform: platform,language: language)
@@ -161,7 +169,7 @@ public extension LocalizationClient {
         return getLocalizationsFromCache(platform: platform, language: language)
             .flatMap { [self] cachedLocalization in
                 if let cachedLocalization = cachedLocalization {
-                    logger.log(message: "Using Vapor cache used as fallback", withLevel: .info)
+                    logger.log(message: "Using localizations from Vapor cache as fallback", withLevel: .info)
                     return eventLoop.future(cachedLocalization)
                 }
 
@@ -226,11 +234,16 @@ public extension LocalizationClient {
             return resource
         }
         .flatMap { [self] (resource: LocalizationResource.Resource) in
+            let errorMessage = "[NStack] Could not find any localizations for platform: \(platform) and language: \(language)"
+
+            // Use the URL for the cached and published localizations if they exists
+            if URL(string: resource.url) != nil {
+                return client.getContent(forURL: resource.url, withErrorMessage: errorMessage)
+            }
+
+            // Else create the path and get localizations directly from NStack
             let path = "\(Paths.resourceLocalizations)/\(resource.id)"
-            return client.getContent(
-                forPath: path,
-                withErrorMessage: "[NStack] Could not find any localizations for platform: \(platform) and language: \(language)"
-            )
+            return client.getContent(forPath: path, withErrorMessage: errorMessage)
         }
         .flatMap { [self] (localizationResponse: Localization.ResponseData) in
             // Cache localizations in memory and in Vapor cache

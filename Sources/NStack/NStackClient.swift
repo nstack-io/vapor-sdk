@@ -5,10 +5,12 @@ struct NStackClient {
     let config: NStackConfig
     let decoder: JSONDecoder
 
-    init(application: Application) {
-        self.client = application.client
-        self.config = application.nstack.config
+    init(client: Client, config: NStackConfig) {
+        self.client = client
+        self.config = config
         self.decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
     }
 
     /// Get NStack content for the provided path.
@@ -30,6 +32,27 @@ struct NStackClient {
                     return try decoder.decode(C.self, from: body)
                 } catch {
                     throw NStackError.decodingResponseBodyFailed(path: path, type: C.self)
+                }
+            }
+    }
+
+    /// Get NStack content for the provided url. This method should primarily be used to get cached data.
+    /// - Parameter url: URL to the (cached) desired content
+    /// - Returns: An Event Loop Future holding the decoded response
+    func getContent<C>(
+        forURL url: String,
+        withErrorMessage errorMessage: String
+    ) -> EventLoopFuture<C> where C : NStackResponse {
+        client.get(URI(string: url), headers: authHeaders())
+            .flatMapThrowing { [self] response in
+                try assertOKResponse(response, errorMessage: errorMessage)
+
+                let body = try getResponseBody(from: response, forPath: url)
+
+                do {
+                    return try decoder.decode(C.self, from: body)
+                } catch {
+                    throw NStackError.decodingResponseBodyFailed(path: url, type: C.self)
                 }
             }
     }

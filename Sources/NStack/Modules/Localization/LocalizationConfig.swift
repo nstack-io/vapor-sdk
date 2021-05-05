@@ -4,8 +4,8 @@ public struct LocalizationConfig: Codable {
     public let cacheInMinutes: Int
     public let placeholderPrefix: String
     public let placeholderSuffix: String
-    public let retryWaitingPeriodInMinutes: Double
-    public let notFoundWaitingPeriodInMinutes: Double
+    public let retryWaitingPeriodInSeconds: Double
+    public let notFoundWaitingPeriodInSeconds: Double
 
     public static let `default` = LocalizationConfig(
         defaultPlatform: .backend,
@@ -13,8 +13,8 @@ public struct LocalizationConfig: Codable {
         cacheInMinutes: 60,
         placeholderPrefix: "{",
         placeholderSuffix: "}",
-        retryWaitingPeriodInMinutes: 3,
-        notFoundWaitingPeriodInMinutes: 5
+        retryWaitingPeriodInSeconds: 180,
+        notFoundWaitingPeriodInSeconds: 300
     )
 
     public init(
@@ -23,8 +23,8 @@ public struct LocalizationConfig: Codable {
         cacheInMinutes: Int =  LocalizationConfig.default.cacheInMinutes,
         placeholderPrefix: String = LocalizationConfig.default.placeholderPrefix,
         placeholderSuffix: String = LocalizationConfig.default.placeholderSuffix,
-        retryWaitingPeriodInMinutes: Double = LocalizationConfig.default.retryWaitingPeriodInMinutes,
-        notFoundWaitingPeriodInMinutes: Double = LocalizationConfig.default.notFoundWaitingPeriodInMinutes
+        retryWaitingPeriodInSeconds: Double = LocalizationConfig.default.retryWaitingPeriodInSeconds,
+        notFoundWaitingPeriodInSeconds: Double = LocalizationConfig.default.notFoundWaitingPeriodInSeconds
     ) {
         self.defaultPlatform = defaultPlatform
         self.defaultLanguage = defaultLanguage
@@ -39,7 +39,7 @@ public struct LocalizationConfig: Codable {
             self.placeholderSuffix = placeholderSuffix
         }
 
-        self.retryWaitingPeriodInMinutes = retryWaitingPeriodInMinutes
-        self.notFoundWaitingPeriodInMinutes = notFoundWaitingPeriodInMinutes
+        self.retryWaitingPeriodInSeconds = retryWaitingPeriodInSeconds
+        self.notFoundWaitingPeriodInSeconds = notFoundWaitingPeriodInSeconds
     }
 }

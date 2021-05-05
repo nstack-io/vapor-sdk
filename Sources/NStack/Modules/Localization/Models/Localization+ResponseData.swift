@@ -3,16 +3,8 @@ extension Localization {
         typealias DataObject = LocalizationFormat
 
         struct Metadata: Decodable {
-            let language: Language
-            let platform: Platform
-
-            struct Language: Decodable {
-                let locale: String
-            }
-
-            struct Platform: Decodable {
-                var slug: Localize.Platform
-            }
+            let language: LocalizationLanguage
+            let platform: LocalizationPlatform
         }
 
         let data: LocalizationFormat
