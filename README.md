@@ -67,11 +67,14 @@ app.cache.use(.memory)
 You can override which cache to use by creating your own type that conforms to the `Cache` protocol from Vapor. 
 Use `app.nstack.caches.use()` to configure which cache to use.
 
-## Usage
+### Logging 🗒
 
-### Features
+Logging in NStack is based Vapors logging API build on top of [SwiftLog](https://github.com/apple/swift-log). 
+To turn it on, set `enableLogging: true` when configuring NStack.
 
-#### Localization
+## Usage - Features
+
+### Localization
 First you'll have to configure your localization. In configure.swift just below where you configured nstack
 ```swift
 // ...
@@ -81,14 +84,16 @@ let localizationConfig = LocalizationConfig(
     cacheInMinutes: 60,
     placeholderPrefix: "{",
     placeholderSuffix: "}",
-    retryWaitingPeriodInMinutes: 3,
-    notFoundWaitingPeriodInMinutes: 5
+    retryWaitingPeriodInSeconds: 180,
+    notFoundWaitingPeriodInSeconds: 300
 )
 
-app.nstack.localize = LocalizationController(
-    client: NStackClient(application: app),
-    config: localizationConfig,
-    application: app
+app.nstack.localize = LocalizationClient(
+    localizationConfig: localizationConfig,
+    nstackConfig: app.nstack.config,
+    client: app.client,
+    logger: app.logger,
+    cache: app.nstack.caches.cache
 )
 ```
 
@@ -122,7 +127,6 @@ You can also provide `searchReplacePairs`:
 ```swift
 func getProductName(req: Request, owner: String) throws -> EventLoopFuture<String> {
 
-    let nstack = try req.make(NStack.self)
     let localization = request.nstack.localize.get(
         section: "products", 
         key: "product_name",
@@ -133,7 +137,7 @@ func getProductName(req: Request, owner: String) throws -> EventLoopFuture<Strin
 }
 ```
 
-##### Preload Localizations
+#### Preload Localizations
 The package comes with a middleware that allows you to preload localizations if needed.  
 It can be registered either globally in your configure.swift:
 ```swift
@@ -150,7 +154,7 @@ NOTE:  `NStackPreloadLocalizationsMiddleware` will only fetch the default langua
 
 ## 🏆 Credits
 
-This package is developed and maintained by the Vapor team at [Nodes](https://www.nodesagency.com).
+This package is developed and maintained by the Vapor team at [Monstarlab](https://monstar-lab.com/global/).
 
 ## 📄 License
 
