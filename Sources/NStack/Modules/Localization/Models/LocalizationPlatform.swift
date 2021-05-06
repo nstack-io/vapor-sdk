@@ -1,4 +1,8 @@
-struct LocalizationPlatform: Decodable {
-    let id: Int
-    let slug: Localize.Platform
+public enum LocalizationPlatform: String, Codable {
+    case backend, api, web, mobile
+
+    struct ResponseData: Decodable {
+        let id: Int
+        let slug: LocalizationPlatform
+    }
 }

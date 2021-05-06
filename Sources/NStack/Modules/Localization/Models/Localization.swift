@@ -7,13 +7,13 @@ struct Localization: Codable {
     typealias LocalizationFormat = [Section: [Key: Translation]]
 
     let localizations: LocalizationFormat
-    let platform: Localize.Platform
+    let platform: LocalizationPlatform
     let language: String
     let date: Date
 
     init(
         localizations: LocalizationFormat,
-        platform: Localize.Platform,
+        platform: LocalizationPlatform,
         language: String,
         date: Date = Date()
     ) {

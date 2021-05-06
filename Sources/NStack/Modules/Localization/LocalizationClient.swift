@@ -9,10 +9,6 @@ public final class LocalizationClient {
     let logger: NStackLogger
     private let eventLoop: EventLoop
 
-    public enum Platform: String, Codable {
-        case backend, api, web, mobile
-    }
-
     public init(
         localizationConfig: LocalizationConfig,
         nstackConfig: NStackConfig,
@@ -38,12 +34,18 @@ public final class LocalizationClient {
     }
 }
 
-public typealias Localize = LocalizationClient
-
 public extension LocalizationClient {
 
+    /// Get localizations matching the provided section - key pair.
+    /// - Parameters:
+    ///   - platform: platform for which the localizations belong. If none is provided the defaiult platform will be taken from the LocalizationConfig
+    ///   - language: language for which the localizations belong. If none is provided the defaiult language will be taken from the LocalizationConfig
+    ///   - section: the section you are looking for
+    ///   - key: the key you want to match
+    ///   - searchReplacePairs: an optional set of search/replace pairs, to replace any tokens in the localized value
+    /// - Returns: The localized value for the section/key pair
     final func get(
-        platform: Platform? = nil,
+        platform: LocalizationPlatform? = nil,
         language: String? = nil,
         section: String,
         key: String,
@@ -89,8 +91,14 @@ public extension LocalizationClient {
             }
     }
 
+    /// Get localizations matching the provided section.
+    /// - Parameters:
+    ///   - platform: platform for which the localizations belong. If none is provided the defaiult platform will be taken from the LocalizationConfig
+    ///   - language: language for which the localizations belong. If none is provided the defaiult language will be taken from the LocalizationConfig
+    ///   - section: the section you are looking for
+    /// - Returns: The localized values for the section
     final func get(
-        platform: Platform? = nil,
+        platform: LocalizationPlatform? = nil,
         language: String? = nil,
         section: String
     ) -> EventLoopFuture<[String: String]> {
@@ -118,8 +126,13 @@ public extension LocalizationClient {
             }
     }
 
+    /// Preload localizations for the provided platform and language. If none is provided the dafault values will be used from the LocalizationConfig
+    /// - Parameters:
+    ///   - platform: optional platform
+    ///   - language: optional language
+    /// - Returns: EventLoopFuture holding Void once the localizations is preloaded and cached
     final func preloadLocalization(
-        platform: Platform? = nil,
+        platform: LocalizationPlatform? = nil,
         language: String? = nil
     ) -> EventLoopFuture<Void> {
         let platform = platform ?? localizationConfig.defaultPlatform
@@ -129,7 +142,7 @@ public extension LocalizationClient {
     }
     
     private final func fetchLocalization(
-        platform: Platform,
+        platform: LocalizationPlatform,
         language: String
     ) -> EventLoopFuture<Localization?> {
         let cacheKey = LocalizationClient.makeCacheKey(platform: platform, language: language)
@@ -180,7 +193,7 @@ public extension LocalizationClient {
     }
 
     private final func getLocalizationsFromMemory(
-        platform: Platform,
+        platform: LocalizationPlatform,
         language: String
     ) -> Localization? {
         let cacheKey = LocalizationClient.makeCacheKey(platform: platform, language: language)
@@ -199,7 +212,7 @@ public extension LocalizationClient {
     }
 
     private final func getLocalizationsFromCache(
-        platform: Platform,
+        platform: LocalizationPlatform,
         language: String
     ) -> EventLoopFuture<Localization?> {
         let cacheKey = LocalizationClient.makeCacheKey(platform: platform, language: language)
@@ -214,7 +227,7 @@ public extension LocalizationClient {
     }
 
     private final func getLocalizationsFromNStack(
-        platform: Platform,
+        platform: LocalizationPlatform,
         language: String
     ) -> EventLoopFuture<Localization?> {
         let resourcePath = "\(Paths.platformResources)/\(platform.rawValue)"
@@ -258,7 +271,7 @@ public extension LocalizationClient {
                 }
                 return NStackError.unexpectedLocalizationError(message: error.localizedDescription)
             }
-            let cacheKey = Localize.makeCacheKey(platform: platform, language: language)
+            let cacheKey = LocalizationClient.makeCacheKey(platform: platform, language: language)
             attempts[cacheKey] = TranslationAttempt(error: nstackError)
             throw nstackError
         }
@@ -280,7 +293,7 @@ public extension LocalizationClient {
         return cache.set(cacheKey, to: localization)
     }
 
-    private static func makeCacheKey(platform: Platform, language: String) -> String {
+    private static func makeCacheKey(platform: LocalizationPlatform, language: String) -> String {
         return platform.rawValue.lowercased() + "_" + language.lowercased()
     }
 }

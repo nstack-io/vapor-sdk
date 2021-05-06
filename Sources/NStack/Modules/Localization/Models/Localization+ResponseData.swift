@@ -4,7 +4,7 @@ extension Localization {
 
         struct Metadata: Decodable {
             let language: LocalizationLanguage
-            let platform: LocalizationPlatform
+            let platform: LocalizationPlatform.ResponseData
         }
 
         let data: LocalizationFormat

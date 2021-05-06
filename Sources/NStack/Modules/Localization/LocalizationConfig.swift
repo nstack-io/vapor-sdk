@@ -1,5 +1,5 @@
 public struct LocalizationConfig: Codable {
-    public let defaultPlatform: Localize.Platform
+    public let defaultPlatform: LocalizationPlatform
     public let defaultLanguage: String
     public let cacheInMinutes: Int
     public let placeholderPrefix: String
@@ -18,7 +18,7 @@ public struct LocalizationConfig: Codable {
     )
 
     public init(
-        defaultPlatform: Localize.Platform = LocalizationConfig.default.defaultPlatform,
+        defaultPlatform: LocalizationPlatform = LocalizationConfig.default.defaultPlatform,
         defaultLanguage: String = LocalizationConfig.default.defaultLanguage,
         cacheInMinutes: Int =  LocalizationConfig.default.cacheInMinutes,
         placeholderPrefix: String = LocalizationConfig.default.placeholderPrefix,

@@ -141,16 +141,28 @@ func getProductName(req: Request, owner: String) throws -> EventLoopFuture<Strin
 The package comes with a middleware that allows you to preload localizations if needed.  
 It can be registered either globally in your configure.swift:
 ```swift
-app.middleware.use(NStackPreloadLocalizationsMiddleware())
+app.middleware.use(
+  NStackPreloadLocalizationsMiddleware(
+    languageHeader: "X-NSTACK-LOCALIZATIONS-LANGUAGE",
+    platformHeader: "X-NSTACK-LOCALIZATIONS-PLATFORM"
+  )
+)
 ```
 Or on individual routes inside your `routes(app:)`
 ```swift
-let preloadedLocalizations = app.grouped(NStackPreloadLocalizationsMiddleware())
+let preloadedLocalizations = app.grouped(
+  NStackPreloadLocalizationsMiddleware(
+    languageHeader: "X-NSTACK-LOCALIZATIONS-LANGUAGE",
+    platformHeader: "X-NSTACK-LOCALIZATIONS-PLATFORM"
+  )
+)
+
 preloadedLocalizations.get("products") { req in
     // This request has passed through NStackPreloadLocalizationsMiddleware.
 }
 ```
-NOTE:  `NStackPreloadLocalizationsMiddleware` will only fetch the default language and the default platform localizations.
+NOTE:  `NStackPreloadLocalizationsMiddleware` You can define the language and platform you wish to pre-load using the defined request headers. 
+If none is provided the middleware will default to the ones you defined in your `LocalizationConfig`.
 
 ## 🏆 Credits
 
