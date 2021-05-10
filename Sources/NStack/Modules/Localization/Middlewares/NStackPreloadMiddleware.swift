@@ -5,8 +5,8 @@ public struct NStackPreloadLocalizationsMiddleware: Middleware {
     let platformHeader: String
 
     init(
-        languageHeader: String = "X-NSTACK-LOCALIZATION-LANGUAGE",
-        platformHeader: String = "X-NSTACK-LOCALIZATION-PLATFORM"
+        languageHeader: String = "X-LOCALIZATIONS-LANGUAGE",
+        platformHeader: String = "X-LOCALIZATIONS-PLATFORM"
     ) {
         self.languageHeader = languageHeader
         self.platformHeader = platformHeader

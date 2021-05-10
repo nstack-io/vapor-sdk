@@ -143,8 +143,8 @@ It can be registered either globally in your configure.swift:
 ```swift
 app.middleware.use(
   NStackPreloadLocalizationsMiddleware(
-    languageHeader: "X-NSTACK-LOCALIZATIONS-LANGUAGE",
-    platformHeader: "X-NSTACK-LOCALIZATIONS-PLATFORM"
+    languageHeader: "X-LOCALIZATIONS-LANGUAGE",
+    platformHeader: "X-LOCALIZATIONS-PLATFORM"
   )
 )
 ```
@@ -152,8 +152,8 @@ Or on individual routes inside your `routes(app:)`
 ```swift
 let preloadedLocalizations = app.grouped(
   NStackPreloadLocalizationsMiddleware(
-    languageHeader: "X-NSTACK-LOCALIZATIONS-LANGUAGE",
-    platformHeader: "X-NSTACK-LOCALIZATIONS-PLATFORM"
+    languageHeader: "X-LOCALIZATIONS-LANGUAGE",
+    platformHeader: "X-LOCALIZATIONS-PLATFORM"
   )
 )
 

@@ -199,4 +199,41 @@ class NStackTests: XCTestCase {
         XCTAssertEqual(testLogHandler.logs[1], "[INFO] Fetching new localizations from NStack")
         XCTAssertEqual(testLogHandler.logs[2], "[INFO] Caching localizations on key: backend_en-en")
     }
+
+    func test_localizationsPreloadingMiddleware() throws {
+        // register the route using the preload middelware
+        testLogHandler.logs = []
+        app.grouped(
+            NStackPreloadLocalizationsMiddleware(
+                languageHeader: "X-LOCALIZATIONS-LANGUAGE",
+                platformHeader: "X-LOCALIZATIONS-PLATFORM"
+            )
+        )
+        .get("greeting") { req -> EventLoopFuture<String> in
+            let name = try req.query.get(String.self, at: "name")
+            return req.nstack.localize
+                .get(section: "test", key: "greeting", searchReplacePairs: ["name": name])
+        }
+
+        try app.test(
+            .GET,
+            "greeting?name=Vapor",
+            headers: ["X-LOCALIZATION-LANGUAGES": "en-EN", "X-LOCALIZATION-PLATFORMS": "backend"],
+            afterResponse: { response in
+                XCTAssertEqual(response.status, .ok)
+
+                let responseText = response.body.getString(at: 0, length: 13)
+                XCTAssertEqual(responseText, "Hello, Vapor!")
+            }
+        )
+
+        // MARK: Check logs
+
+        XCTAssertEqual(testLogHandler.logs.count, 5)
+        XCTAssertEqual(testLogHandler.logs[0], "[INFO] Fetching new localizations from NStack")
+        XCTAssertEqual(testLogHandler.logs[1], "[INFO] Caching localizations on key: backend_en-en")
+        XCTAssertEqual(testLogHandler.logs[2], "[INFO] Requesting translate for platform: backend - language: en-EN - section: test - key: greeting")
+        // Skipping log output with expiration date since it isn't static
+        XCTAssertEqual(testLogHandler.logs[4], "[INFO] Using localizations from memory cache as fallback")
+    }
 }
