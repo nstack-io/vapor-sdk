@@ -1,6 +1,1 @@
-import XCTest
-@testable import NStackTests
-
-XCTMain([
-     testCase(NStackTests.allTests),
-])
+fatalError("Please use swift test --enable-test-discovery to run the tests instead")
