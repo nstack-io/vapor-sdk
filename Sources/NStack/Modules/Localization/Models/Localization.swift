@@ -27,10 +27,8 @@ struct Localization: Codable {
         let cacheInSeconds: TimeInterval = Double(cacheInMinutes) * 60
         let expirationDate: Date = self.date.addingTimeInterval(cacheInSeconds)
 
-        logger.log(
-            message: "Expiration of current cache is: \(expirationDate), current time is: \(Date())",
-            withLevel: .info
-        )
+        logger.log(message: "Expiration of current cache is: \(expirationDate)", withLevel: .info)
+
         return expirationDate.compare(Date()) == .orderedAscending
     }
 
