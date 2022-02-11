@@ -29,7 +29,7 @@ struct NStackClient {
         var url = baseURL
         url.path = path
 
-        return getContent(forURL: URL, withErrorMessage: errorMessage)
+        return getContent(forURI: url, withErrorMessage: errorMessage)
     }
 
     /// Get NStack content for the provided url. This method should primarily be used to get cached data.
@@ -39,16 +39,23 @@ struct NStackClient {
         forURL url: String,
         withErrorMessage errorMessage: String
     ) -> EventLoopFuture<C> where C : NStackResponse {
-        client.get(URI(string: url), headers: headers)
+        getContent(forURI: URI(string: url), withErrorMessage: errorMessage)
+    }
+
+    private func getContent<C>(
+        forURI uri: URI,
+        withErrorMessage errorMessage: String
+    ) -> EventLoopFuture<C> where C : NStackResponse {
+        client.get(uri, headers: headers)
             .flatMapThrowing { response in
                 try assertOKResponse(response, errorMessage: errorMessage)
 
-                let body = try getResponseBody(from: response, forPath: url)
+                let body = try getResponseBody(from: response, forPath: uri.path)
 
                 do {
                     return try decoder.decode(C.self, from: body)
                 } catch {
-                    throw NStackError.decodingResponseBodyFailed(path: url, type: C.self)
+                    throw NStackError.decodingResponseBodyFailed(path: uri.path, type: C.self)
                 }
             }
     }
