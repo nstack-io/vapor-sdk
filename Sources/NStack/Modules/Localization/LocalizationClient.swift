@@ -5,7 +5,7 @@ public final class LocalizationClient {
     let localizationConfig: LocalizationConfig
     var localizations: [String: Localization]
     var attempts: [String: TranslationAttempt]
-    var cache: Cache
+    let cache: Cache
     let logger: NStackLogger
     private let eventLoop: EventLoop
 
@@ -73,7 +73,7 @@ public extension LocalizationClient {
 
                 // Search / Replace placeholders
                 if let searchReplacePairs = searchReplacePairs {
-                    for(search, replace) in searchReplacePairs {
+                    for (search, replace) in searchReplacePairs {
                         value = value.replacingOccurrences(
                             of: localizationConfig.placeholderPrefix + search + localizationConfig.placeholderSuffix,
                             with: replace

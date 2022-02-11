@@ -31,7 +31,7 @@ struct Localization: Codable {
             message: "Expiration of current cache is: \(expirationDate), current time is: \(Date())",
             withLevel: .info
         )
-        return (expirationDate.compare(Date()) == .orderedAscending)
+        return expirationDate.compare(Date()) == .orderedAscending
     }
 
     func get(logger: NStackLogger, section: Section, key: Key) -> Translation {
@@ -61,6 +61,6 @@ struct Localization: Codable {
     }
 
     static func fallback(section: Section) -> [Key: Translation] {
-        return [Key: Translation]()
+        return [:]
     }
 }

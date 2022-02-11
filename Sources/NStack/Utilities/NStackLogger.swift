@@ -1,6 +1,6 @@
 import Vapor
 
-final class NStackLogger {
+struct NStackLogger {
     let isEnabled: Bool
     private let logger: Logger
 

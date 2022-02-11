@@ -117,7 +117,7 @@ class NStackTests: XCTestCase {
 
         XCTAssertTrue(emptyLocalizations.isEmpty)
 
-        XCTAssertEqual(app.nstack.localize.attempts.count, 1, "Expeccted on attempt to be cached")
+        XCTAssertEqual(app.nstack.localize.attempts.count, 1, "Expected on attempt to be cached")
         XCTAssertTrue(app.nstack.localize.attempts.contains(where: { $0.key == "mobile_en-en" }))
     }
 
