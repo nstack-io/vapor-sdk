@@ -44,7 +44,7 @@ public extension LocalizationClient {
     ///   - key: the key you want to match
     ///   - searchReplacePairs: an optional set of search/replace pairs, to replace any tokens in the localized value
     /// - Returns: The localized value for the section/key pair
-    final func get(
+    func get(
         platform: LocalizationPlatform? = nil,
         language: String? = nil,
         section: String,
@@ -97,7 +97,7 @@ public extension LocalizationClient {
     ///   - language: language for which the localizations belong. If none is provided the defaiult language will be taken from the LocalizationConfig
     ///   - section: the section you are looking for
     /// - Returns: The localized values for the section
-    final func get(
+    func get(
         platform: LocalizationPlatform? = nil,
         language: String? = nil,
         section: String
@@ -131,7 +131,7 @@ public extension LocalizationClient {
     ///   - platform: optional platform
     ///   - language: optional language
     /// - Returns: EventLoopFuture holding Void once the localizations is preloaded and cached
-    final func preloadLocalization(
+    func preloadLocalization(
         platform: LocalizationPlatform? = nil,
         language: String? = nil
     ) -> EventLoopFuture<Void> {
@@ -141,7 +141,7 @@ public extension LocalizationClient {
         return fetchLocalization(platform: platform, language: language).transform(to: ())
     }
     
-    private final func fetchLocalization(
+    private func fetchLocalization(
         platform: LocalizationPlatform,
         language: String
     ) -> EventLoopFuture<Localization?> {
@@ -192,7 +192,7 @@ public extension LocalizationClient {
             }
     }
 
-    private final func getLocalizationsFromMemory(
+    private func getLocalizationsFromMemory(
         platform: LocalizationPlatform,
         language: String
     ) -> Localization? {
@@ -211,7 +211,7 @@ public extension LocalizationClient {
         return localization
     }
 
-    private final func getLocalizationsFromCache(
+    private func getLocalizationsFromCache(
         platform: LocalizationPlatform,
         language: String
     ) -> EventLoopFuture<Localization?> {
@@ -226,7 +226,7 @@ public extension LocalizationClient {
         }
     }
 
-    private final func getLocalizationsFromNStack(
+    private func getLocalizationsFromNStack(
         platform: LocalizationPlatform,
         language: String
     ) -> EventLoopFuture<Localization?> {
@@ -277,7 +277,7 @@ public extension LocalizationClient {
         }
     }
 
-    private final func setCache(
+    private func setCache(
         localization: Localization
     ) -> EventLoopFuture<Void> {
         let cacheKey = LocalizationClient.makeCacheKey(
