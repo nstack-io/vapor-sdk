@@ -216,13 +216,12 @@ public extension LocalizationClient {
         language: String
     ) -> EventLoopFuture<Localization?> {
         let cacheKey = LocalizationClient.makeCacheKey(platform: platform, language: language)
-        return cache.get(cacheKey, as: Localization.self).map { [self] localization in
+        return cache.get(cacheKey, as: Localization.self).flatMap { [self] localization in
             if localization?.isOutdated(logger: logger, localizationConfig.cacheInMinutes) == true {
                 logger.log(message: "Localization cache is outdated", withLevel: .info)
-                // TODO: how to drop a cache in Vapor 4?
-                return nil
+                return cache.set(cacheKey, to: Optional<Localization>.none, expiresIn: nil).transform(to: nil)
             }
-            return localization
+            return eventLoop.future(localization)
         }
     }
 
