@@ -2,12 +2,18 @@ import Vapor
 
 struct NStackClient {
     let client: Client
-    let config: NStackConfig
+    let baseURL: URI
+    let headers: HTTPHeaders
     let decoder: JSONDecoder
 
     init(client: Client, config: NStackConfig) {
         self.client = client
-        self.config = config
+        self.headers = [
+            "Accept": "application/json",
+            "X-application-ID": config.applicationID,
+            "X-Rest-Api-Key": config.restKey,
+        ]
+        self.baseURL = URI(scheme: config.scheme, host: config.baseURL, path: "")
         self.decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .iso8601
@@ -20,20 +26,10 @@ struct NStackClient {
         forPath path: String,
         withErrorMessage errorMessage: String
     ) -> EventLoopFuture<C> where C : NStackResponse {
-        let url = URI(scheme: config.scheme, host: config.baseURL, path: path)
+        var url = baseURL
+        url.path = path
 
-        return client.get(url, headers: authHeaders())
-            .flatMapThrowing { [self] response in
-                try assertOKResponse(response, errorMessage: errorMessage)
-
-                let body = try getResponseBody(from: response, forPath: path)
-
-                do {
-                    return try decoder.decode(C.self, from: body)
-                } catch {
-                    throw NStackError.decodingResponseBodyFailed(path: path, type: C.self)
-                }
-            }
+        return getContent(forURL: URL, withErrorMessage: errorMessage)
     }
 
     /// Get NStack content for the provided url. This method should primarily be used to get cached data.
@@ -43,8 +39,8 @@ struct NStackClient {
         forURL url: String,
         withErrorMessage errorMessage: String
     ) -> EventLoopFuture<C> where C : NStackResponse {
-        client.get(URI(string: url), headers: authHeaders())
-            .flatMapThrowing { [self] response in
+        client.get(URI(string: url), headers: headers)
+            .flatMapThrowing { response in
                 try assertOKResponse(response, errorMessage: errorMessage)
 
                 let body = try getResponseBody(from: response, forPath: url)
@@ -71,13 +67,5 @@ struct NStackClient {
             throw NStackError.missingResponseBody(forPath: path)
         }
         return body
-    }
-
-    private func authHeaders() -> HTTPHeaders {
-        [
-            "Accept": "application/json",
-            "X-application-ID": config.applicationID,
-            "X-Rest-Api-Key": config.restKey,
-        ]
     }
 }
